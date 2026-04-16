@@ -487,7 +487,6 @@
 
             <hr class="divider">
             <button class="btn btn-primary" onclick="generateReport()">Generera rapport</button>
-            <button class="btn btn-signal" onclick="sendToSignal()">Skicka till Signal</button>
         </div>
 
         <!-- Resultatvy -->
@@ -497,7 +496,7 @@
             <button class="btn btn-copy" onclick="copyToClipboard()">Kopiera till urklipp</button>
             <div class="copy-feedback" id="copyFeedback">✓ Kopierat</div>
             <button class="btn btn-signal" onclick="sendToSignal()">Skicka till Signal</button>
-            <button class="btn btn-tak" onclick="showPublishDialog()">Publicera till TAK + dela via Signal</button>
+            <button class="btn btn-tak" onclick="showPublishDialog()">Publicera till TAK</button>
             <div class="cot-group">
                 <button class="btn btn-cot" onclick="copyCoT()">Kopiera CoT XML</button>
                 <button class="btn btn-cot" onclick="downloadCoT()">Ladda ner .cot-fil</button>
@@ -509,7 +508,7 @@
         </div>
     </main>
 
-    <!-- Bekräftelsedialog: Publicera till TAK + Signal -->
+    <!-- Bekräftelsedialog: Publicera till TAK -->
     <div class="confirm-overlay" id="publishOverlay" onclick="if(event.target===this)closePublishDialog()">
         <div class="confirm-dialog">
             <h3>Publicera rapport</h3>
@@ -1376,15 +1375,14 @@ function showCotFeedback(msg) {
     setTimeout(() => { el.textContent = '✓ Kopierat'; }, 2500);
 }
 
-// ── Publicera till TAK + dela via Signal ─────────────────────────────────────
+// ── Publicera till TAK ───────────────────────────────────────────────────────
 function showPublishDialog() {
     const v = id => document.getElementById(id).value.trim();
     const stalle = v('stalle') || '-';
     const info = document.getElementById('publishInfo');
     info.innerHTML =
         `<span class="label">Position:</span> ${stalle}\n` +
-        `<span class="label">TAK:</span> .cot-fil delas till ATAK\n` +
-        `<span class="label">Signal:</span> Textrapport delas`;
+        `<span class="label">TAK:</span> .cot-fil delas till ATAK`;
     document.getElementById('publishOverlay').classList.add('open');
 }
 
@@ -1394,7 +1392,6 @@ function closePublishDialog() {
 
 function executePublish() {
     closePublishDialog();
-    const text = document.getElementById('reportOutput').textContent;
     const xml = generateCoTXML();
     const dpBlob = buildDataPackage(xml, '7S');
     const dpFile = new File([dpBlob], `7S-rapport-${new Date().toISOString().slice(0,10)}.zip`, { type: 'application/zip' });
@@ -1404,23 +1401,18 @@ function executePublish() {
     if (lastFotoFile) files.push(lastFotoFile);
 
     if (navigator.share) {
-        const shareData = { text, files };
+        const shareData = { files };
         if (navigator.canShare?.(shareData)) {
             navigator.share(shareData).then(() => {
-                showCotFeedback('✓ Rapport delad');
+                showCotFeedback('✓ Data Package delad');
             }).catch(() => {
                 fallbackDownloadCoT(xml);
-                shareTextOnly(text);
             });
         } else {
             fallbackDownloadCoT(xml);
-            shareTextOnly(text);
         }
     } else {
         fallbackDownloadCoT(xml);
-        if (navigator.clipboard?.writeText) {
-            navigator.clipboard.writeText(text).then(() => showCotFeedback('✓ Data Package nedladdad + text kopierad'));
-        }
     }
 }
 
@@ -1431,12 +1423,6 @@ function fallbackDownloadCoT(xml) {
     a.href = url; a.download = `7S-rapport-${new Date().toISOString().slice(0,10)}.zip`;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
-}
-
-function shareTextOnly(text) {
-    if (navigator.share) {
-        navigator.share({ text }).catch(() => {});
-    }
 }
 
 // ── Skicka till Signal direkt från formuläret ────────────────────────────────
