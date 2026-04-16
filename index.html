@@ -172,7 +172,7 @@
         .cot-group { margin-top: 4px; }
         .btn-tak { width: 100%; background: var(--bg-secondary); color: var(--accent); border: 1px solid var(--accent-dim); margin-bottom: 8px; font-size: 0.9rem; }
         .btn-tak:hover { background: var(--accent-dim); border-color: var(--accent); }
-        .btn-signal { display: block; width: 100%; background: var(--bg-secondary); color: var(--accent); border: 1px solid var(--accent-dim); margin-top: 8px; font-size: 0.9rem; text-decoration: none; text-align: center; }
+        .btn-signal { width: 100%; background: var(--bg-secondary); color: var(--accent); border: 1px solid var(--accent-dim); margin-top: 8px; font-size: 0.9rem; }
         .btn-signal:hover { background: var(--accent-dim); border-color: var(--accent); }
         /* Bekräftelsedialog */
         .confirm-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:11000; align-items:center; justify-content:center; padding:16px; }
@@ -487,7 +487,7 @@
 
             <hr class="divider">
             <button class="btn btn-primary" onclick="generateReport()">Generera rapport</button>
-            <a class="btn btn-signal" id="signalLink" href="#" role="button" onclick="sendToSignal(event)">Skicka till Signal</a>
+            <button class="btn btn-signal" onclick="sendToSignal()">Skicka till Signal</button>
         </div>
 
         <!-- Resultatvy -->
@@ -1439,7 +1439,7 @@ function shareTextOnly(text) {
 }
 
 // ── Skicka till Signal direkt från formuläret ────────────────────────────────
-function buildReportText() {
+function sendToSignal() {
     const v = id => document.getElementById(id).value.trim();
     savePlaceIfNew(v('stalle'));
     saveSagesmanIfNew(v('sagesman'));
@@ -1462,32 +1462,28 @@ function buildReportText() {
         `Sagesman: ${v('sagesman') || '-'}`,
         `Sedan: ${v('sedan') || '-'}`,
     ].filter(Boolean);
-    return lines.join('\n');
-}
+    const text = lines.join('\n');
 
-function sendToSignal(e) {
-    const text = buildReportText();
-    const encoded = encodeURIComponent(text);
-    const intentUrl = 'intent://send/#Intent;action=android.intent.action.SEND;type=text/plain;S.android.intent.extra.TEXT=' + encoded + ';package=org.thoughtcrime.securesms;end';
-
-    // On Android Chrome, navigate to the intent URL
-    const isAndroid = /android/i.test(navigator.userAgent);
-    if (isAndroid) {
-        window.location.href = intentUrl;
-        e.preventDefault();
-        return;
-    }
-
-    // Fallback for non-Android: copy to clipboard
-    e.preventDefault();
-    if (navigator.clipboard?.writeText) {
+    if (navigator.share) {
+        const shareData = { text };
+        if (lastFotoFile) {
+            const withFile = { text, files: [lastFotoFile] };
+            if (navigator.canShare?.(withFile)) {
+                navigator.share(withFile).catch(e => {
+                    if (e.name !== 'AbortError') alert('Delning misslyckades. Försök kopiera manuellt.');
+                });
+                return;
+            }
+        }
+        navigator.share(shareData).catch(e => {
+            if (e.name !== 'AbortError') alert('Delning misslyckades. Försök kopiera manuellt.');
+        });
+    } else if (navigator.clipboard?.writeText) {
         navigator.clipboard.writeText(text).then(() => {
             alert('Rapport kopierad till urklipp — klistra in i Signal.');
         }).catch(() => {
             alert('Kunde inte kopiera till urklipp.');
         });
-    } else {
-        alert('Kan inte dela automatiskt. Kopiera rapporten manuellt.');
     }
 }
 
