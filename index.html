@@ -172,6 +172,8 @@
         .cot-group { margin-top: 4px; }
         .btn-tak { width: 100%; background: var(--bg-secondary); color: var(--accent); border: 1px solid var(--accent-dim); margin-bottom: 8px; font-size: 0.9rem; }
         .btn-tak:hover { background: var(--accent-dim); border-color: var(--accent); }
+        .btn-signal { width: 100%; background: var(--bg-secondary); color: var(--accent); border: 1px solid var(--accent-dim); margin-top: 8px; font-size: 0.9rem; }
+        .btn-signal:hover { background: var(--accent-dim); border-color: var(--accent); }
         /* Bekräftelsedialog */
         .confirm-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:11000; align-items:center; justify-content:center; padding:16px; }
         .confirm-overlay.open { display:flex; }
@@ -485,6 +487,7 @@
 
             <hr class="divider">
             <button class="btn btn-primary" onclick="generateReport()">Generera rapport</button>
+            <button class="btn btn-signal" onclick="sendToSignal()">Skicka till Signal</button>
         </div>
 
         <!-- Resultatvy -->
@@ -1432,6 +1435,55 @@ function fallbackDownloadCoT(xml) {
 function shareTextOnly(text) {
     if (navigator.share) {
         navigator.share({ text }).catch(() => {});
+    }
+}
+
+// ── Skicka till Signal direkt från formuläret ────────────────────────────────
+function sendToSignal() {
+    const v = id => document.getElementById(id).value.trim();
+    savePlaceIfNew(v('stalle'));
+    saveSagesmanIfNew(v('sagesman'));
+    saveTillIfNew(v('till'));
+    saveFranIfNew(v('fran'));
+    const lines = [
+        '7S RAPPORT',
+        `Till: ${v('till') || '-'}`,
+        `Från: ${v('fran') || '-'}`,
+        '',
+        `TNR: ${nowTnr()}`,
+        '',
+        `Stund: ${v('stund') || '-'}`,
+        `Ställe: ${v('stalle') || '-'}`,
+        `Styrka: ${v('styrka') || '-'}`,
+        `Slag: ${v('slag') || '-'}`,
+        `Sysselsättning: ${v('sysselsattning') || '-'}`,
+        `Symbol: ${v('symbol') || '-'}`,
+        lastFotoFilename ? `Foto: ${lastFotoFilename}` : null,
+        `Sagesman: ${v('sagesman') || '-'}`,
+        `Sedan: ${v('sedan') || '-'}`,
+    ].filter(Boolean);
+    const text = lines.join('\n');
+
+    if (navigator.share) {
+        const shareData = { text };
+        if (lastFotoFile) {
+            const withFile = { text, files: [lastFotoFile] };
+            if (navigator.canShare?.(withFile)) {
+                navigator.share(withFile).catch(e => {
+                    if (e.name !== 'AbortError') alert('Delning misslyckades. Försök kopiera manuellt.');
+                });
+                return;
+            }
+        }
+        navigator.share(shareData).catch(e => {
+            if (e.name !== 'AbortError') alert('Delning misslyckades. Försök kopiera manuellt.');
+        });
+    } else if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Rapport kopierad till urklipp — klistra in i Signal.');
+        }).catch(() => {
+            alert('Kunde inte kopiera till urklipp.');
+        });
     }
 }
 
