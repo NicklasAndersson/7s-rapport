@@ -1425,31 +1425,9 @@ function fallbackDownloadCoT(xml) {
     URL.revokeObjectURL(url);
 }
 
-// ── Skicka till Signal direkt från formuläret ────────────────────────────────
+// ── Dela rapport via Share API ────────────────────────────────────────────────
 function sendToSignal() {
-    const v = id => document.getElementById(id).value.trim();
-    savePlaceIfNew(v('stalle'));
-    saveSagesmanIfNew(v('sagesman'));
-    saveTillIfNew(v('till'));
-    saveFranIfNew(v('fran'));
-    const lines = [
-        '7S RAPPORT',
-        `Till: ${v('till') || '-'}`,
-        `Från: ${v('fran') || '-'}`,
-        '',
-        `TNR: ${nowTnr()}`,
-        '',
-        `Stund: ${v('stund') || '-'}`,
-        `Ställe: ${v('stalle') || '-'}`,
-        `Styrka: ${v('styrka') || '-'}`,
-        `Slag: ${v('slag') || '-'}`,
-        `Sysselsättning: ${v('sysselsattning') || '-'}`,
-        `Symbol: ${v('symbol') || '-'}`,
-        lastFotoFilename ? `Foto: ${lastFotoFilename}` : null,
-        `Sagesman: ${v('sagesman') || '-'}`,
-        `Sedan: ${v('sedan') || '-'}`,
-    ].filter(Boolean);
-    const text = lines.join('\n');
+    const text = document.getElementById('reportOutput').textContent;
 
     if (navigator.share) {
         const shareData = { text };
